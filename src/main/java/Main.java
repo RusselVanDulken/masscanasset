@@ -18,9 +18,14 @@ import java.util.ArrayList;
  * @time 14:59	当前系统时间
  */
 public class Main {
+    public static String exchangeIP(String ip){
+        ip=ip.replace(".","-");
+        return ip;
+    }
     public static void main(String[] args) throws IOException, DocumentException, InterruptedException {
         final String IP_INSERT = "192.168.103.0/24";
         String IP = IP_INSERT.substring(0,IP_INSERT.indexOf("/"));
+        String IP_file = exchangeIP(IP);
 //        masscan --ping {segment} --rate 10000 -oX /usr/lib/kbids/data/assetscan/ip_result.xml --wait 0
         final Thread t0 =new Thread(new Runnable() {
             @Override
@@ -32,7 +37,7 @@ public class Main {
                 command0.add("--rate");
                 command0.add("10000");
                 command0.add("-oX");
-                command0.add("./"+IP+"_masscan.xml");
+                command0.add("./"+IP_file+"_masscan.xml");
                 command0.add("--wait");
                 command0.add("0");
                 int size = command0.size();
@@ -40,21 +45,21 @@ public class Main {
                 OSUtil.run(command0.toArray(command));
             }
         });
-
         //初始化线程t1,nmap扫描形成xml文件
         final Thread t1 = new Thread(new Runnable() {
             @Override
             public void run() {
                 MasscanParsing MS = new MasscanParsing();
-                ArrayList<String> iplist = MS.masscanParsing("./"+IP+"_masscan.xml");
+                ArrayList<String> iplist = MS.masscanParsing("./"+IP_file+"_masscan.xml");
                 for (String ip:iplist){
+                    String ip_namefile = exchangeIP(ip);
                     ArrayList<String> command = new ArrayList<>();
                     command.add("nmap");
                     command.add("-O");
                     command.add("-A");
                     command.add("-Pn");
                     command.add("-oX");
-                    command.add("./"+ip+".xml");
+                    command.add("./"+ip_namefile+".xml");
                     command.add(ip);
                     command.add("--min-rate");
                     command.add("64");
@@ -66,7 +71,6 @@ public class Main {
                     String[] command1=new String[size];
                     OSUtil.run(command.toArray(command1));
                 }
-
             }
         });
         //初始化线程t2，解析xml生成json文件
@@ -74,12 +78,13 @@ public class Main {
             @Override
             public void run() {
                 MasscanParsing MS = new MasscanParsing();
-                ArrayList<String> iplist = MS.masscanParsing("./"+IP+"_masscan.xml");
+                ArrayList<String> iplist = MS.masscanParsing("./"+IP_file+"_masscan.xml");
                 for(String ip:iplist){
                     NmapParsing np =new NmapParsing();
+                    String ip_namefile = exchangeIP(ip);
                     ArrayList<Nmap> nmap = new ArrayList<>();
                     try {
-                        nmap = np.nampparsing("./"+ip+".xml");
+                        nmap = np.nampparsing("./"+ip_namefile+".xml");
                     } catch (DocumentException e) {
                         e.printStackTrace();
                     }
